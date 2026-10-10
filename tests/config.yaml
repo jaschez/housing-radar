@@ -1,0 +1,61 @@
+# Configuration used by the test suite. The fixtures were captured in Granada and Seville,
+# so the areas match them. See examples/workspace/config.yaml for a documented example.
+language: en
+currency: EUR
+timezone: Europe/Madrid
+
+budgets: {sale: 200000, rent: 650}
+rent_floor: 350
+minimums: {area_m2: 70, rooms: 2}
+excluded_property_types: [studio, loft]
+
+areas:
+  - name: granada
+    region: Granada
+    localities: [Granada, Armilla, Maracena, Ogijares, La Zubia, Cajar, Huetor Vega, Albolote, Atarfe,
+                 Churriana de la Vega, Las Gabias, Pulianas, Peligros, Jun, Monachil]
+  - name: sevilla
+    region: Sevilla
+    localities: [Sevilla, Dos Hermanas, Mairena del Aljarafe, San Juan de Aznalfarache, Tomares, Bormujos,
+                 Gelves, Camas, Castilleja de la Cuesta, Gines, La Rinconada, Alcala de Guadaira]
+locality_aliases: {Montequinto: Dos Hermanas}
+
+exclusions:
+  - reason: "no elevator"
+    patterns: ["sin ascensor", "sin ascencor", "no tiene ascensor", "no dispone de ascensor"]
+    applies_to: [flat, penthouse, duplex, studio, loft, other]
+  - reason: "needs renovation"
+    patterns: ["a reformar", "para reformar", "necesita reforma", "reformar integralmente"]
+  - reason: "bare ownership"
+    patterns: ["nuda propiedad", "con inquilino", "ocupado con inquilino"]
+  - reason: "occupied"
+    patterns: ["okupad", "ocupado ilegalmente", "sin posesion", "posible ocupacion"]
+  - reason: "auction"
+    patterns: ["subasta", "cesion de remate"]
+  - reason: "already rented"
+    patterns: ["ya esta alquilado", "ya alquilado"]
+  - reason: "temporary or room rental"
+    patterns: ["alquiler de temporada", "por habitac", "por meses", "solo estudiantes", "temporal",
+               "habitaciones para estudiantes", "se alquilan habitaciones", "alquiler de habitaciones",
+               "habitacion en alquiler", "busca companer", "buscan companer", "compartir piso", "piso compartido",
+               "companeras de piso", "companeros de piso", "se alquila habitac", "habitacion individual",
+               "solo chicas", "solo chicos", "se alquilan tres habitac", "piso a compartir", "alquilo habitac",
+               "habitacion con llave", "residencia de estudiantes"]
+
+sources:
+  pisos_com:
+    max_pages: 150
+    zones:
+      granada: [area_de_granada]
+      sevilla: [area_de_sevilla, el_aljarafe, la_rinconada]
+  fotocasa: {max_pages: 40}
+  idealista:
+    backend: alerts
+    monthly_quota: 100
+    centers:
+      granada: {center: "37.1773,-3.5986", distance_m: 9000}
+      sevilla: {center: "37.3891,-5.9845", distance_m: 12000}
+
+evaluation: {backend: none, max_per_day: 25}
+notify: {backend: file, to: test@example.com}
+watch: {max_items_per_mail: 15, min_prescore: null}

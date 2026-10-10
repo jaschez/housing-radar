@@ -1,0 +1,104 @@
+# Housing radar: example workspace configuration.
+#
+# Copy this directory somewhere of your own (it will hold your history and personal data)
+# and point the radar at it:   export RADAR_WORKSPACE=~/my-housing-radar
+# The code never writes to this file.
+#
+# This example searches Valencia (Spain) with the built-in Spanish sources. For another
+# country, replace `sources` with your own plugins (see examples/plugins/) and adapt the
+# exclusion patterns to the language the listings are written in.
+
+language: en                 # e-mails and evaluation text: en | es
+currency: EUR
+timezone: Europe/Madrid      # "today" and the timers follow this zone
+
+notify:
+  to: you@example.com
+  backend: smtp              # smtp | claude-gmail | file
+  smtp:
+    host: smtp.gmail.com     # for Gmail, use an app password
+    port: 587
+    from: you@example.com
+  # SMTP_USER and SMTP_PASSWORD go in secrets.env next to this file.
+
+evaluation:
+  backend: anthropic-api     # anthropic-api | claude-cli | none
+  model: claude-opus-5-5     # API model id; with claude-cli use an alias such as "sonnet"
+  max_per_day: 25            # listings evaluated per day; the rest wait in the queue
+  # Market knowledge for the evaluator, appended to the prompt.
+  notes: |
+    Spain: a "VPO" (vivienda de protección oficial) is not a reject by itself; flag it as
+    "check access requirements and maximum price" and rate it Medium at most.
+    "Nuda propiedad", "cesión de remate", "venta sin posesión" and "con inquilino" mean the
+    buyer cannot move in: reject. Agency fees ("honorarios") are usually paid by the buyer.
+
+# --- what you are looking for ------------------------------------------------------------
+budgets:                     # leave out an operation to not search it
+  sale: 250000
+  rent: 1000
+rent_floor: 450              # below this, a "whole home" at this size is usually a single room
+minimums:
+  area_m2: 60
+  rooms: 2
+excluded_property_types: [studio, loft]   # flat penthouse duplex studio loft house detached other
+require_elevator: true       # flats above ground without an elevator are discarded
+
+# --- where -------------------------------------------------------------------------------
+# An area is a region (province, state, county) plus the localities in it. Sources report
+# (region, locality) and the guard keeps only what matches, accents and case folded.
+areas:
+  - name: valencia
+    region: Valencia
+    localities: [Valencia, Paterna, Burjassot, Mislata, Torrent, Xirivella, Alaquas]
+locality_aliases:            # names a portal uses for a locality, or for a neighbourhood
+  Montcada Moncada: Montcada
+
+# --- hard exclusions ---------------------------------------------------------------------
+# Matched as word prefixes against title + description, accents and punctuation removed;
+# "no <pattern>" does not match. `applies_to` limits a rule to some property types.
+negation_words: ["no", "not"]
+exclusions:
+  - reason: "no elevator"
+    patterns: ["sin ascensor", "no tiene ascensor", "no dispone de ascensor"]
+    applies_to: [flat, penthouse, duplex, studio, loft, other]
+  - reason: "needs renovation"
+    patterns: ["a reformar", "para reformar", "necesita reforma", "reformar integralmente"]
+  - reason: "bare ownership or tenant"
+    patterns: ["nuda propiedad", "con inquilino", "sin posesion"]
+  - reason: "occupied"
+    patterns: ["okupad", "ocupado ilegalmente", "posible ocupacion"]
+  - reason: "auction"
+    patterns: ["subasta", "cesion de remate"]
+  - reason: "already rented"
+    patterns: ["ya esta alquilado", "ya alquilado"]
+  - reason: "temporary or room rental"
+    patterns: ["alquiler de temporada", "por habitac", "por meses", "solo estudiantes", "temporal",
+               "habitaciones para estudiantes", "se alquilan habitaciones", "alquiler de habitaciones",
+               "se alquila habitac", "habitacion individual", "piso compartido", "piso a compartir",
+               "companeros de piso", "companeras de piso", "busca companer", "buscan companer"]
+
+# --- sources -----------------------------------------------------------------------------
+# Built-in (Spain): pisos_com, fotocasa, idealista. Your own: {path: plugins/x.py}.
+# Every source accepts `enabled`, `fetchers` (the access chain, default [direct]) and
+# `min_gap_s` (seconds between requests to one host).
+sources:
+  pisos_com:
+    max_pages: 150
+    zones:                   # area name -> pisos.com zone slugs (see the site's URLs)
+      valencia: [valencia_capital, horta_oest, horta_nord]
+  fotocasa:
+    max_pages: 40
+    slugs: {}                # locality -> Fotocasa slug, only where the automatic one fails
+  idealista:
+    backend: alerts          # alerts (no requests) | official (API key in secrets.env)
+    monthly_quota: 100
+    centers:
+      valencia: {center: "39.4699,-0.3763", distance_m: 8000}
+  # my_portal:
+  #   path: plugins/example_source.py
+  #   fetchers: [direct]
+
+# --- fast cadence ------------------------------------------------------------------------
+watch:
+  max_items_per_mail: 15
+  min_prescore: {sale: 2.0, rent: null}   # null = announce everything that passes

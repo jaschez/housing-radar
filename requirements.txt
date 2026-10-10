@@ -1,0 +1,4 @@
+requests>=2.31
+PyYAML>=6.0
+# Only for evaluation.backend: anthropic-api
+anthropic>=1.13
